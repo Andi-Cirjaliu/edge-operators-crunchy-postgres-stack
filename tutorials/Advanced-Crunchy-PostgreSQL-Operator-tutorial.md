@@ -1,6 +1,6 @@
 ---
 title: Crunchy Data PostgreSQL Operator Tutorial
-description: This tutorial explains how to use Crunchy PostgreSQL Operator
+description: This tutorial explains how to use Crunchy PostgreSQL Operator (PGO)
 ---
 
 ### Introduction
@@ -12,6 +12,8 @@ The PostgreSQL Operator Client, aka pgo, is the most convenient way to interact 
 ```execute
 kubectl get pods -n pgo
 ```
+
+You should see a pod starting with 'postgres-operator' with Ready value '4/4' and Status 'Running'.
 
 ### PGO Setup
 

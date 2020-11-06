@@ -11,10 +11,10 @@
          "title":"Crunchy Data PostgreSQL Operator"
       },
       {
-         "description":" A User Guide for Crunchy Data PostgreSQL Operator - PGO",
+         "description":" Advanced User Guide for Crunchy Data PostgreSQL Operator (PGO)",
          "duration":"30 min",
-         "tutorial_name":"Crunchy-PostgreSQL-Operator-PGO-tutorial.md",
-         "title":"Crunchy Data PostgreSQL Operator - PGO"
+         "tutorial_name":"Advanced-Crunchy-PostgreSQL-Operator-tutorial.md",
+         "title":"Advanced Crunchy Data PostgreSQL Operator (PGO)"
       },
       {
          "description":" Sample Application using PostgreSQL DB Cluster from Crunchy",
