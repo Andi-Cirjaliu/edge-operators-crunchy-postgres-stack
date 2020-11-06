@@ -1,4 +1,3 @@
-```
 ---
 title: Crunchy Data PostgreSQL Operator Tutorial
 description: This tutorial explains how to create a DB using Crunchy PostgreSQL Operator
@@ -19,7 +18,7 @@ kubectl get pods -n pgo
 For user to create PostgreSQL database Cluster using Crunchy PostgreSQL DB Operator
 
 ```execute
-cd /home/student/postgres-operator && export PGO_OPERATOR_NAMESPACE=pgo 
+cd /home/student/projects/postgres-operator && export PGO_OPERATOR_NAMESPACE=pgo 
 ```
 
 Install Client Credentials and Download the PGO Binary and Client Certificates:
@@ -36,134 +35,123 @@ export PATH=/home/student/.pgo/pgo:$PATH && export PGOUSER=/home/student/.pgo/pg
 Create a PostgreSQL DB Cluster 
 
 ```execute
-pgo create cluster my-db --username pguser --password password -n pgo
+pgo create cluster my-sample-db --username pguser --password password -n pgo
 ```
-
-### PostgreSQL DB Example Application :Contacts Application (React/Node.js/PostgreSQL)
-
-***Introduction***
-
-Contacts application comprises of a crunchydata PostgreSQL database , backend and frontend which are deployed independently as a microservice.
-The example also uses Skaffold which handles the workflow for building, pushing and deploying your application, allowing you to focus on what matters most: writing code.
-
-***Code Structure***
-
-![codestructure](_images/contacts-app-structure.PNG)
-
-It follows a simple modular and MVC pattern. There are 3 folders that are of our interest:
-- k8s :  This contains all the deployment and service yaml for the application. This defines the deployment and exposure of our application.
-- frontend: This contains the frontend code and uses Pug as a templating engine for view.
-- backend: This contains all the backend code that is building using express js.
-
-### Try the example
-For user to create PostgreSQL database Cluster using Crunchy PostgreSQL DB Operator
-
+Check the Sample DB Cluster state and wait until its in state **1/1**
 ```execute
-cd /home/student/postgres-operator && export PGO_OPERATOR_NAMESPACE=pgo 
+kubectl get pods -n pgo | grep "my-sample-db"
 ```
-Install Client Credentials and Download the PGO Binary and Client Certificates:
+![check-my-sample-db-state](_images/my-sample-db-1-1-state.PNG)
 
+### Setup connectivity to the DB
+Create DB Service
 ```execute
-PGO_CMD=kubectl ./deploy/install-bootstrap-creds.sh && PGO_CMD=kubectl ./installers/kubectl/client-setup.sh
+echo "apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    name: my-sample-db
+    pg-cluster: my-sample-db
+    vendor: crunchydata
+  name: my-sample-db
+  namespace: pgo
+spec:
+  ports:
+  - name: sshd
+    nodePort: 30088
+    port: 2022
+    protocol: TCP
+    targetPort: 2022
+  - name: postgres
+    nodePort: 30445
+    port: 5432
+    protocol: TCP
+    targetPort: 5432
+  selector:
+    pg-cluster: my-sample-db
+    role: master
+  sessionAffinity: None
+  type: NodePort" | kubectl apply -n pgo -f -
 ```
-Export PGO data that will be used for Cluster creation
+Check The Service 
+```execute
+kubectl get svc -n pgo | grep "my-sample-db"
+```
 
-```execute
-export PATH=/home/student/.pgo/pgo:$PATH && export PGOUSER=/home/student/.pgo/pgo/pgouser && export PGO_CA_CERT=/home/student/.pgo/pgo/client.crt && export PGO_CLIENT_CERT=/home/student/.pgo/pgo/client.crt && export PGO_CLIENT_KEY=/home/student/.pgo/pgo/client.key && export PGO_APISERVER_URL=https://127.0.0.1:32443
-```
-Create a contacts PostgreSQL DB Cluster 
-
-```execute
-pgo create cluster contacts --username pguser --password password -n pgo
-```
 Get the Cluster IP
 ```execute
 export ip_addr=$(ifconfig eth1 | grep inet | awk '{print $2}' | cut -f2 -d:)
 ```
-Get the Example 
+Check the Cluster IP Address
 ```execute
-cd /home/student/projects && git clone https://github.com/Andi-Cirjaliu/edge-node-react-postgres-contacts-deploy.git
-```
-Setup the Backend API for deployment
-```execute
-cd /home/student/projects/edge-node-react-postgres-contacts-deploy/frontend && export backend_port=30456 && sed -i "s|ip|$ip_addr|" .env && sed -i "s|port|$backend_port|" .env
-```
-Create the Contacts DB PostgreSQL Service
-```execute
-cd /home/student/projects/edge-node-react-postgres-contacts-deploy/k8s && kubectl create -f contacts-service.yaml
-```
-Create the Contacts DB PostgreSQL Cluster with username and password and initialize the DB.
-```execute
-cd /home/student/projects/edge-node-react-postgres-contacts-deploy && PGPASSWORD=password psql -U pguser -h $ip_addr -p 30435 contacts < initialize-db.sql 2>output.txt
-```
-Check if the Contacts DB is up and running
-```execute
-until nc -z -v -w30 $ip_addr 30435; do echo \"Waiting for Contacts database connection...\"; sleep 5; done;
-```
-Start the application (Backend and Frontend) with Skaffold
-```execute
-cd /home/student/projects/edge-node-react-postgres-contacts-deploy&& skaffold config set default-repo localhost:5000 && skaffold run
+echo $ip_addr
 ```
 
-### Access the example application
-
-Click on the Key icon on the Stack Builder Dashboard and copy the value under the `DNS` section and `IP` field
-
-URL :  http://##DNS.ip##:30465
-
-### To Deploy changes to Kubernetes in Dev Mode
-
-Go to Developer Dashboard tab, it will provide you with the IDE along with the integrated terminal.  Click on the bottom status bar and select `TERMINAL`. 
-
-k8s folder contains all the manifest files and defines the deployment strategy for the application.
-One can execute them using :
-
+### Connect to DB from the cluster
 ```execute
-kubectl apply -f k8s/
+PGPASSWORD=password psql -U pguser -h $ip_addr -p 30445 my-sample-db
+```
+### Create TABLE
+The PostgreSQL CREATE TABLE statement is used to create a new table in any of the given database.
+```execute
+CREATE TABLE COMPANY(
+   ID INT PRIMARY KEY     NOT NULL,
+   NAME           TEXT    NOT NULL,
+   AGE            INT     NOT NULL,
+   ADDRESS        CHAR(50),
+   SALARY         REAL,
+   JOIN_DATE	  DATE
+);
 ```
 
-In this example , we use `Skaffold` which simplifies local development. You can deploy the application is DEV mode which keeps watching for the files changes and on any change, triggers the entire deployment process automatically without the user having to run and manage it manually.
-
-Navigate to the example:
+You can verify if your table has been created successfully using \d command, which will be used to list down all the tables in an attached database.
 
 ```execute
-cd /home/student/projects/edge-node-react-postgres-contacts-deploy
+\dt 
 ```
+### Insert Values to Table
+
+The PostgreSQL INSERT INTO statement allows one to insert new rows into a table. One can insert a single row at a time or several rows as a result of a query.
+
+The following example inserts a row into the COMPANY table −
+```execute
+INSERT INTO COMPANY (ID,NAME,AGE,ADDRESS,SALARY,JOIN_DATE) VALUES (1, 'Paul', 32, 'California', 20000.00,'2001-07-13');
+```
+The following example is to insert a row; here salary column is omitted and therefore it will have the default value −
+```execute
+INSERT INTO COMPANY (ID,NAME,AGE,ADDRESS,JOIN_DATE) VALUES (2, 'Allen', 25, 'Texas', '2007-12-13');
+```
+The following example uses the DEFAULT clause for the JOIN_DATE column rather than specifying a value −
+```execute
+INSERT INTO COMPANY (ID,NAME,AGE,ADDRESS,SALARY,JOIN_DATE) VALUES (3, 'Teddy', 23, 'Norway', 20000.00, DEFAULT );
+```
+The following example inserts multiple rows using the multirow VALUES syntax −
+```execute
+INSERT INTO COMPANY (ID,NAME,AGE,ADDRESS,SALARY,JOIN_DATE) VALUES (4, 'Mark', 25, 'Rich-Mond ', 65000.00, '2007-12-13' ), (5, 'David', 27, 'Texas', 85000.00, '2007-12-13');
+```
+All the above statements would create the following records in COMPANY table. The next chapter will teach you how to display all these records from a table.
+
+### Fetch the Data from the Table
+PostgreSQL SELECT statement is used to fetch the data from a database table, which returns data in the form of result table. These result tables are called result-sets.
 
 ```execute
-skaffold dev
+SELECT * FROM company;
 ```
 
-On exiting the command, Skaffold will automatically destroy all the resources it created with above command.
-
-
-Also, you can use the `skaffold run` to deploy the changes onto Kubernetes as a normal mode. In this mode, the resources created remains unless the user deletes them.
-
-### Clean up the Kubernetes resources (Example application and PostgreSQL DB)
-
-You can delete all the application resources created by executing the following command:
+### To Exit from the DB
 
 ```execute
-cd /home/students/projects/edge-node-react-postgres-contacts-deploy && kubectl delete -f k8s/
+\q
 ```
-
-To delete the PostgreSQL DB , execute the below commands:
-
+### Run a command remotely 
+1. SELECT Command
 ```execute
-cd /home/student/postgres-operator
-export PGO_OPERATOR_NAMESPACE=pgo
+PGPASSWORD=password psql -U pguser -h $ip_addr -p 30445 my-sample-db -c "select * from company;"
 ```
+2. INSERT Command
 ```execute
-PGO_CMD=kubectl ./deploy/install-bootstrap-creds.sh && PGO_CMD=kubectl ./installers/kubectl/client-setup.sh
+PGPASSWORD=password psql -U pguser -h $ip_addr -p 30445 my-sample-db -c "INSERT INTO COMPANY (ID,NAME,AGE,ADDRESS,JOIN_DATE) VALUES (6, 'Tim', 28, 'Texas', '2009-12-13');"
 ```
-```execute
-export PATH=/home/student/.pgo/pgo:$PATH && export PGOUSER=/home/student/.pgo/pgo/pgouser && export PGO_CA_CERT=/home/student/.pgo/pgo/client.crt && export PGO_CLIENT_CERT=/home/student/.pgo/pgo/client.crt && export PGO_CLIENT_KEY=/home/student/.pgo/pgo/client.key
-```
-```execute
-export PGO_APISERVER_URL=https://127.0.0.1:32443
-pgo delete cluster contacts -n pgo
-```
-
 
 
 
