@@ -40,7 +40,7 @@ export PGO_NAMESPACE=pgo
 
 ### Create a database
 
-Create a PostgreSQL DB Cluster (database) specifying a database user and password. This will create 'my-db' cluster (database) and the 'pguser' database user will be created for accessing the created cluster (database)
+Create a PostgreSQL DB Cluster (database) specifying a database user and password. This will create 'my-db' cluster (database) and the 'pguser' database user with 'password' password will be created for accessing the created cluster (database)
 
 ```execute
 pgo create cluster my-db --username pguser --password password
@@ -196,7 +196,8 @@ pgo restore my-db
 
 ### Delete a database
 
-This will delete 'my-db' cluster (database). This command will just start the process of deleting the cluster.
+This will delete 'my-db' cluster (database). This command will just start the process of deleting the cluster (database).
+To see when the cluster (database) was deleted use 'pgo test --all' command.
 
 ```execute
 pgo delete cluster my-db
